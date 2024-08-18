@@ -2,7 +2,7 @@ package org.ite.mongodb.dto;
 
 public record StudentResponse(
 
-            Integer rno,
+            Integer id,
 
             String name,
 

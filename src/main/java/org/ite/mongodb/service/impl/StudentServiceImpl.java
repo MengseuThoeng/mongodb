@@ -5,19 +5,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.ite.mongodb.dto.StudentCreateRequest;
 import org.ite.mongodb.dto.StudentResponse;
 import org.ite.mongodb.model.Student;
-import org.ite.mongodb.model.Teacher;
 import org.ite.mongodb.repository.StudentRepository;
 import org.ite.mongodb.service.StudentService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -28,33 +26,46 @@ public class StudentServiceImpl implements StudentService {
 
     private final MongoTemplate mongoTemplate;
 
-    public List<Student> search(String search) {
-        Query query = new Query();
-        Criteria criteria = new Criteria();
+    @Override
+    public Page<Student> searchStudents(Map<String, String> filters, String logicalOperator, String sortColumn, String sortDirection, int page, int size) {
+        List<Criteria> criteriaList = new ArrayList<>();
 
-        try {
-            int rno = Integer.parseInt(search);
-            Criteria idCriteria = Criteria.where("rno").is(rno);
-            criteria.orOperator(idCriteria);
-        } catch (NumberFormatException e) {
-            Criteria nameCriteria = Criteria.where("name").regex(search, "i");
-            criteria.orOperator(nameCriteria);
+        // Building Criteria
+        for (Map.Entry<String, String> entry : filters.entrySet()) {
+            criteriaList.add(Criteria.where(entry.getKey()).is(entry.getValue()));
         }
 
-        query.addCriteria(criteria);
-        return mongoTemplate.find(query, Student.class);
+        // Combine criteria with logical operator
+        Criteria finalCriteria;
+        if ("or".equalsIgnoreCase(logicalOperator)) {
+            finalCriteria = new Criteria().orOperator(criteriaList.toArray(new Criteria[0]));
+        } else {
+            finalCriteria = new Criteria().andOperator(criteriaList.toArray(new Criteria[0]));
+        }
+
+        Query query = new Query(finalCriteria);
+
+        // Apply sorting
+        if (sortColumn != null && sortDirection != null) {
+            Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+            query.with(Sort.by(direction, sortColumn));
+        }
+
+        // Apply pagination
+        Pageable pageable = PageRequest.of(page, size);
+        long count = mongoTemplate.count(query, Student.class);
+        List<Student> students = mongoTemplate.find(query.with(pageable), Student.class);
+
+        // Return a Page object
+        return new org.springframework.data.domain.PageImpl<>(students, pageable, count);
     }
 
-    @Override
-    public void addTeacher(Teacher teacher) {
-        log.info("Teacher added: {}", teacher);
-        mongoTemplate.save(teacher);
-    }
+
 
     @Override
     public void addStudent(StudentCreateRequest studentCreateRequest) {
         Student student = new Student();
-        student.setRno(studentCreateRequest.rno());
+        student.setId(studentCreateRequest.id());
         student.setName(studentCreateRequest.name());
         student.setAddress(studentCreateRequest.address());
 
@@ -82,7 +93,7 @@ public class StudentServiceImpl implements StudentService {
 
         return studentRepository.findAll(pageable)
                 .map(student -> new StudentResponse(
-                        student.getRno(),
+                        student.getId(),
                         student.getName(),
                         student.getAddress()
                 ));

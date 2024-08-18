@@ -1,21 +1,20 @@
 package org.ite.mongodb.model;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "teacher")
-@Data
+@Document(collection = "user")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Teacher {
-
+@Data
+public class User {
     @Id
-    private Integer tno;
+    private Integer id;
 
-    private String name;
+    private String username;
 
-    private String email;
 }

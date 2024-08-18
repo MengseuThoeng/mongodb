@@ -14,11 +14,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Student {
 
     @Id
-    private Integer rno;
+    private Integer id;
 
     private String name;
 
     private String address;
 
-    private String role;
+
 }

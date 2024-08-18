@@ -4,12 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.ite.mongodb.dto.StudentCreateRequest;
 import org.ite.mongodb.dto.StudentResponse;
 import org.ite.mongodb.model.Student;
-import org.ite.mongodb.model.Teacher;
 import org.ite.mongodb.service.StudentService;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/students")
@@ -18,14 +20,25 @@ public class StudentController {
 
     private final StudentService studentService;
 
-    @PostMapping("/addTeacher")
-    void addTeacher(@RequestBody Teacher teacher) {
-        studentService.addTeacher(teacher);
-    }
 
-    @GetMapping
-    List<Student> search(@RequestParam String search) {
-        return studentService.search(search);
+    @GetMapping("/search")
+    public Page<Student> searchStudents(
+            @RequestParam Map<String, String> allParams,
+            @RequestParam(defaultValue = "and") String logicalOperator,
+            @RequestParam(required = false) String sortColumn,
+            @RequestParam(required = false) String sortDirection,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        // Remove sort and pagination params to isolate filters
+        Map<String, String> filters = new HashMap<>(allParams);
+        filters.remove("logicalOperator");
+        filters.remove("sortColumn");
+        filters.remove("sortDirection");
+        filters.remove("page");
+        filters.remove("size");
+
+        return studentService.searchStudents(filters, logicalOperator, sortColumn, sortDirection, page, size);
     }
 
     @PostMapping("/addStudent")
