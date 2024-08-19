@@ -6,6 +6,8 @@ public record StudentCreateRequest(
 
         String name,
 
-        String address
+        String address,
+
+        String email
 ) {
 }

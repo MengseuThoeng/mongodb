@@ -20,5 +20,7 @@ public class Student {
 
     private String address;
 
+    private String email;
+
 
 }
