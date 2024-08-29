@@ -1,0 +1,51 @@
+services:
+  e-learning:
+    image: "mongo:7.0.12-rc1-jammy"
+    container_name: "e-learning"
+    ports:
+      - "27024:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=seu
+      - MONGO_INITDB_ROOT_PASSWORD=seu
+    restart: always
+    healthcheck:
+      test: echo 'db.runCommand({find:"e-learning.seu"}).ok' | mongosh --authenticationDatabase admin --host localhost -u seu -p seu admin --quiet | grep -q 1
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    volumes:
+      - course_mongodb_data_vol:/data/db/
+      - course_mongodb_log_vol:/var/log/mongodb/
+    networks:
+      - course_mongodb_net
+  api-course:
+    build: .
+    image: "api-course"
+    container_name: "api-course"
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      e-learning:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: "curl --fail --silent localhost:8080/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - course_mongodb_net
+
+volumes:
+  course_mongodb_data_vol:
+  course_mongodb_log_vol:
+
+networks:
+  course_mongodb_net:
